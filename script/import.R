@@ -4,7 +4,9 @@ excel_files <- list.files(
   full.names = TRUE
 )
 excel_files <- excel_files[!grepl("^~\\$", basename(excel_files))]
-df <- read_excel(excel_files) |> clean_names()
+
+df <- read_excel(excel_files, skip = 2) |> clean_names()
+
 df_long <- df |>
   pivot_longer(
     cols = -1,

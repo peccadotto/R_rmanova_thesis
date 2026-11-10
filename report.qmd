@@ -1,0 +1,310 @@
+---
+lang: it
+format:
+  pdf:
+    pdf-engine: pdflatex
+    papersize: a4
+    geometry:
+      - portrait
+      - top = 25mm
+      - bottom = 25mm
+      - left = 15mm
+      - right = 15 mm
+      - headsep = 8mm
+    fontsize: 10pt
+    linestretch: 1
+    include-in-header:
+      - text: |
+          \usepackage{fancyhdr}
+          \usepackage{lastpage}
+          \usepackage{changepage}
+          
+          \pagestyle{fancy}
+          \fancyhf{}
+          
+          \fancyhead[L]{\texttt{\textbf{REPEATED MEASURES COMPARISON}}}
+          \fancyhead[R]{\texttt{Author: Andrea Peccati}}
+          \renewcommand{\headrulewidth}{0pt}
+          
+          \newcount\hours
+          \newcount\minutes
+          \newcommand{\printtime}{%
+            \hours=\time
+            \divide\hours by 60
+            \minutes=\time
+            \multiply\hours by 60
+            \advance\minutes by -\hours
+            \divide\hours by 60
+            \ifnum\hours<10 0\fi\the\hours:%
+            \ifnum\minutes<10 0\fi\the\minutes:00%
+          }
+          \renewcommand{\footrulewidth}{0pt}
+          \fancyfoot[L]{\texttt{Print date:~\the\day-\ifnum\month<10 0\fi\the\month-\the\year\ \printtime}}
+          \fancyfoot[R]{\texttt{Page \thepage\ of \pageref*{LastPage}}}
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(dplyr)
+library(lubridate)
+library(tidyr)
+
+TABLE_NUMBER <- 0
+```
+
+```{r}
+#| label: sample_size
+#| echo: false
+#| results: asis
+
+cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ".a) SAMPLE SIZE}}\\vspace{5mm}"))
+
+cat("\\begin{adjustwidth}{1cm}{0cm}")
+cat("\\begin{verbatim}")
+  df_sample <- readRDS("export/df_sample_size.rds")
+  sep = c(rep(" ", length(df_sample)))
+  df_formatted <- df_sample |>
+    mutate(
+      Power = sprintf("%.2f", Power)
+    )
+  colnames(df_formatted) <- c("Power", "Delta = 0.3", "Delta = 0.4", "Delta = 0.5")
+  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+  write.table(
+    df_aligned,
+    row.names = FALSE,
+    col.names = FALSE,
+    quote = FALSE,
+    sep = "     "
+  )
+cat("\\end{verbatim}")
+cat("\\end{adjustwidth}")
+```
+
+```{r}
+#| label: power_analysis
+#| echo: false
+#| results: asis
+
+cat(paste0("\\vspace{5mm}\\texttt{\\textbf{Table ", TABLE_NUMBER, ".b) POWER ANALYSIS}}\\vspace{5mm}"))
+
+cat("\\begin{adjustwidth}{1cm}{0cm}\n")
+cat("\\begin{verbatim}\n")
+  df <- readRDS("export/df.rds")
+  cat(paste("With N =", nrow(df), "\n\n"))
+  df_powers <- readRDS("export/df_powers.rds")
+  sep = c(rep(" ", length(df_powers)))
+  df_formatted <- df_powers|>
+    mutate(
+      across(where(is.numeric), ~ sprintf("%.2f", .))
+    )
+  colnames(df_formatted) <- c("Delta = 0.3", "Delta = 0.4", "Delta = 0.5")
+  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+  write.table(
+    df_aligned,
+    row.names = FALSE,
+    col.names = FALSE,
+    quote = FALSE,
+    sep = "     "
+  )
+  TABLE_NUMBER <- TABLE_NUMBER + 1
+cat("\\end{verbatim}")
+cat("\\end{adjustwidth}")
+```
+
+\newpage
+
+```{r}
+#| label: descriptive
+#| echo: false
+#| results: asis
+
+cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ") DESCRIPTIVE STATISTICS}}\\vspace{5mm}"))
+
+cat("\\begin{adjustwidth}{1cm}{0cm}")
+cat("\\begin{verbatim}\n")
+  df_descr_1 <- readRDS("export/df_descr.rds") |> select(1:8)
+  sep = c(rep(" ", length(df_descr_1)))
+  df_formatted <- df_descr_1 |>
+     mutate(
+       across(where(is.numeric), ~ sprintf("%.3f", .)),
+       n_valid = as.integer(n_valid),
+       n_missing = as.integer(n_missing)
+      )
+  colnames(df_formatted) <- c("Variable", "N", "Missing", "Mean", "Median", "SD", "Min", "Max")
+  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+  write.table(
+    df_aligned,
+    row.names = FALSE,
+    col.names = FALSE,
+    quote = FALSE,
+    sep = "     "
+  )
+  cat("\n")
+  df_descr_2 <- readRDS("export/df_descr.rds") |> select(-(2:8))
+  df_formatted <- df_descr_2
+  df_formatted <- df_formatted |>
+    mutate(
+      across(where(is.numeric), ~ sprintf("%.3f", .))
+    )
+  colnames(df_formatted) <- c("Variable", "Shapiro (w)", "Shapiro (p)", "25° perc.", "50° perc", "75° perc.")
+  sep = c(rep(" ", length(df_formatted)))
+  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+  write.table(
+    df_aligned,
+    row.names = FALSE,
+    col.names = FALSE,
+    quote = FALSE,
+    sep = "     "
+  )
+  TABLE_NUMBER <- TABLE_NUMBER + 1
+  
+cat("\\end{verbatim}")
+cat("\\end{adjustwidth}")
+```
+
+\newpage
+
+```{r}
+#| label: comparisons
+#| echo: false
+#| results: asis
+
+cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ") MULTIPLE COMPARISONS}}\\vspace{5mm}"))
+
+rds_files <- list.files(
+  path = "export", 
+  pattern = "^df_shapiro_.*\\.rds$",
+  full.names = FALSE,
+  ignore.case = TRUE
+)
+clean_names <- sub("^df_shapiro_", "", rds_files)
+clean_names <- sub("\\.rds$", "", clean_names)
+
+for (name in clean_names) {
+  
+  cat("\\begin{adjustwidth}{1cm}{0cm}")
+  cat("\\begin{minipage}{\\linewidth}")
+  cat("\\begin{verbatim}")
+  
+  header <- paste0("Table ", TABLE_NUMBER, "." , which(clean_names == name), ") [", toupper(name), "] ANALYSIS")
+  cat(header, "\n\n")
+  
+  # ------------------------------------------------------------------
+  # NORMALITY CHECK
+  # ------------------------------------------------------------------
+  cat("· NORMALITY CHECK\n\n")
+  df_shapiro <- readRDS(paste0("export/df_shapiro_", name, ".rds")) |> select(-2)
+  sep = c(rep(" ", length(df_shapiro)))
+  df_formatted <- df_shapiro |>
+    mutate(
+      across(where(is.numeric), ~ sprintf("%.3f", .))
+    )
+  df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
+  colnames(df_formatted) <- c("Time", "Statistic", "P-value", "Normality")
+  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+  write.table(
+    df_aligned,
+    row.names = FALSE,
+    col.names = FALSE,
+    quote = FALSE,
+    sep = "     "
+  )
+  cat("\n")
+  if(all(df_shapiro$p > 0.05)) {
+    cat("Normality RESPECTED --> ANOVA\n\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+    cat("\nANOVA\n")
+  } else {
+    cat("Normality VIOLATED --> FRIEDMAN TEST\n\n")
+    
+    # FRIEDMAN TEST
+    # ----------------------------------------------------------------
+    cat("· FRIEDMAN TEST\n\n")
+    df_friedman <- readRDS(paste0("export/df_friedman_", name, ".rds"))
+    sep = c(rep(" ", length(df_friedman)))
+    df_formatted <- df_friedman |>
+      mutate(
+        across(where(is.numeric), ~ sprintf("%.3f", .))
+      )
+    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
+    colnames(df_formatted) <- c("Chi squared", "DoF", "P-value")
+    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+    write.table(
+      df_aligned,
+      row.names = FALSE,
+      col.names = FALSE,
+      quote = FALSE,
+      sep = "     "
+    )
+    cat("\n")
+    
+    # DURBIN/CONOVER PAIRWISE COMPARISON -----------------------------
+    cat("· DURBIN/CONOVER PAIRWISE COMPARISON\n\n")
+    df_conover <- readRDS(paste0("export/df_conover_", name, ".rds"))
+    sep = c(rep(" ", length(df_conover)))
+    df_formatted <- df_conover
+    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
+    colnames(df_formatted) <- c("Time 1", "Time 2", "Statistic", "P-value")
+    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+    write.table(
+      df_aligned,
+      row.names = FALSE,
+      col.names = FALSE,
+      quote = FALSE,
+      sep = "     "
+    )
+  }
+  cat("\\end{verbatim}\n")
+  cat("\\end{minipage}\n")
+  cat("\\end{adjustwidth}\n")
+}
+```

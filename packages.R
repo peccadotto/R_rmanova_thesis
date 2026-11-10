@@ -26,3 +26,8 @@ check_packages <- function(pkg_list) {
 }
 
 check_packages(packages)
+
+if (!dir.exists("export")) {
+  dir.create("export")
+  message("Folder 'export' created")
+}
