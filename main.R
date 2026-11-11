@@ -23,8 +23,9 @@
   source("script/descriptive.R")
   # source("script/plots_descr.R")
 
-# 5. START OF REPEATED MEASURES STATISTICAL ANALYSIS ---------------------------
+# 5. REPEATED MEASURES STATISTICAL ANALYSIS ------------------------------------
 
+  # 5.0 - Select complete cases for each variable
   analyzed_vars <- unique(df_long$var)
   for (v in analyzed_vars) {
     df_sub <- df_long |> filter(var == v) |> drop_na(value)
@@ -52,6 +53,7 @@
         time = factor(time, levels = unique_timepoints)
       )
 
+  # 5.1 Check for normality
   df_shapiro <- df_sub |>
     group_by(time) |>
     shapiro_test(value) |>
@@ -65,30 +67,70 @@
   } else {
     is_normal <- FALSE
   }
-  table_path <- file.path("export", paste0("df_shapiro_", v, ".rds"))
+  table_path <- file.path("export/rds", paste0("df_shapiro_", v, ".rds"))
   saveRDS(df_shapiro, file = table_path)
   
-  
-  
-  
-  
-  # 4. Parametric (ANOVA) vs Non-Parametric (Friedman) Branching
+  # 5.2 Select the test to be performed
+  # (ANOVA vs Friedman | Normality respected vs violated)
   if (is_normal) {
+    
     # Normality RESPECTED --> ANOVA
-
-    anova_ripetuta <- df_sub |>
+    ranova <- df_sub |>
       anova_test(dv = value, wid = id, within = time)
-    print(anova_ripetuta)
-
-    p_mauchly <- anova_ripetuta$`p.Mauchly`
-
-    if (!is.null(p_mauchly) && p_mauchly < 0.05) {
-      cat("\n>>> WARNING: Sphericity VIOLATED (Mauchly p < 0.05). Use Greenhouse-Geisser correction.\n")
+    df_anova <- data.frame(
+      Statistic = ranova$ANOVA[4],
+      DoF = ranova$ANOVA[2],
+      'P-value' = ranova$ANOVA[5] 
+    )
+    table_path <- file.path("export/rds/", paste0("df_anova_", v, ".rds"))
+    saveRDS(df_anova, file = table_path)
+    p_mauchly <- ranova$`Mauchly's Test for Sphericity`[3]
+    # Check for sphericity
+    if (p_mauchly >= 0.05) {
+      # Sphericity RESPECTED --> ANOVA
+      df_anova_corrected <- df_anova |> mutate(
+        Correction = "None"
+      )
+      table_path <- file.path("export/rds", paste0("df_anova_", v, ".rds"))
+      saveRDS(df_anova_corrected, file = table_path)
     } else {
-      cat("\n>>> OUTCOME: Sphericity RESPECTED (Mauchly p >= 0.05).\n")
+      # Sphericty violated --> Use correction
+      # (GG vs HF depending on GGe)
+      gge <- ranova$`Sphericity Corrections`[2]
+      if (gge < 0.75) {
+        # Use Greenhouse-Geisser correction
+        df_anova_corrected <- data.frame(
+          Statistic = ranova$ANOVA[4],
+          DoF = ranova$`Sphericity Corrections`[3],
+          'P-value' = ranova$`Sphericity Corrections`[4],
+          Correction = "Greenouse - Geisser"
+        )
+        table_path <- file.path("export/rds", paste0("df_anova_corrected_", v, ".rds"))
+        saveRDS(df_anova_corrected, file = table_path)
+      } else {
+        # Use Huynh-Feldt correction
+        df_anova_corrected <- data.frame(
+          Statistic = ranova$ANOVA[4],
+          DoF = ranova$`Sphericity Corrections`[7],
+          'P-value' = ranova$`Sphericity Corrections`[8],
+          Correction = "Huynh - Feldt"
+        )
+        table_path <- file.path("export/rds", paste0("df_anova_corrected", v, ".rds"))
+        saveRDS(df_anova_corrected, file = table_path)
+      }
     }
-
+    
+    # Post-hoc comparison --> HOLM/BONFERRONI pairwise
+    df_pairwise <- df_sub |>
+      pairwise_t_test(
+        value ~ time, 
+        paired = TRUE, 
+        p.adjust.method = "holm"
+      )
+    table_path <- file.path("export/rds", paste0("df_pairwise_", v, ".rds"))
+    saveRDS(df_pairwise, file = table_path)
   } else {
+    
     # Normality VIOLATED --> FRIEDMAN
     friedman <- friedman.test(value ~ time | id, data = df_sub)
     df_friedman <- data.frame(
@@ -97,7 +139,7 @@
       p_value = friedman$p.value 
     )
     row.names(df_friedman) <- NULL
-    table_path <- file.path("export", paste0("df_friedman_", v, ".rds"))
+    table_path <- file.path("export/rds", paste0("df_friedman_", v, ".rds"))
     saveRDS(df_friedman, file = table_path)
     
     # Post-hoc compariosn --> DURBIN/CONOVER pairwise
@@ -126,7 +168,7 @@
       return(df_final)
     }
     df_conover <- extract_conover_table(stat_mat, p_mat)
-    table_path <- file.path("export", paste0("df_conover_", v, ".rds"))
+    table_path <- file.path("export/rds", paste0("df_conover_", v, ".rds"))
     saveRDS(df_conover, file = table_path)
     
     # # 5. Creation and saving of the plot with post-hoc significance bars
@@ -186,26 +228,17 @@
   }
   
   
-  
-  # Filtra dall'environment tutti gli oggetti che iniziano con "df_"
-  list_tabs <- ls(envir = .GlobalEnv)[grepl("^df_", ls(envir = .GlobalEnv))]
-
-  # Filtra dall'environment tutti gli oggetti che iniziano con "plot_" oppure "plot_qq_"
-  list_plots <- ls(envir = .GlobalEnv)[grepl("^plot_|^plot_qq_", ls(envir = .GlobalEnv))]
-
-  # Export tables as RDS files
-  for (table_name in list_tabs) {
-    current_table <- get(table_name)
-    table_path <- file.path("export", paste0(table_name, ".rds"))
-    saveRDS(current_table, file = table_path)
-  }
-
-  # Export tables as XLSX file (multiple sheets)
+  # Export as RDS
+  list_tabs <- list.files(path = "export/rds", pattern = "^df.*\\.rds$", full.names = TRUE)
+  sheets <- sub("\\.rds$", "", basename(list_tabs))
   write.xlsx(
-    setNames(lapply(list_tabs, get), list_tabs),
-    file = "export/FINAL_ANALYSIS.xlsx"
+    setNames(lapply(list_tabs, readRDS), sheets),
+   file = "export/Final_analysis.xlsx"
   )
-
+  
+  
+  
+  # list_plots <- ls(envir = .GlobalEnv)[grepl("^plot_|^plot_qq_", ls(envir = .GlobalEnv))]
   # # Export ggplot graphs as SVG and PDF
   # for (plot_name in list_plots) {
   #   current_plot <- get(plot_name)

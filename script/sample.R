@@ -15,5 +15,7 @@ sample_size <- sapply(delta_vals, function(d) {
   })
 })
 
-colnames(sample_size) <- paste0("Delta = ", delta_vals)
-df_sample_size <- data.frame(Power = power_vals, sample_size)
+colnames(sample_size) <- paste0("Delta ", delta_vals)
+df_samples <- data.frame(Power = power_vals, sample_size)
+table_path <- file.path("export/rds/df_samples.rds")
+saveRDS(df_samples, file = table_path)

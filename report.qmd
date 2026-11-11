@@ -63,7 +63,7 @@ cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ".a) SAMPLE SIZE}}\\vspace{
 
 cat("\\begin{adjustwidth}{1cm}{0cm}")
 cat("\\begin{verbatim}")
-  df_sample <- readRDS("export/df_sample_size.rds")
+  df_sample <- readRDS("export/rds/df_samples.rds")
   sep = c(rep(" ", length(df_sample)))
   df_formatted <- df_sample |>
     mutate(
@@ -93,9 +93,9 @@ cat(paste0("\\vspace{5mm}\\texttt{\\textbf{Table ", TABLE_NUMBER, ".b) POWER ANA
 
 cat("\\begin{adjustwidth}{1cm}{0cm}\n")
 cat("\\begin{verbatim}\n")
-  df <- readRDS("export/df.rds")
+  df <- readRDS("export/rds/df_complete.rds")
   cat(paste("With N =", nrow(df), "\n\n"))
-  df_powers <- readRDS("export/df_powers.rds")
+  df_powers <- readRDS("export/rds/df_powers.rds")
   sep = c(rep(" ", length(df_powers)))
   df_formatted <- df_powers|>
     mutate(
@@ -128,7 +128,7 @@ cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ") DESCRIPTIVE STATISTICS}}
 
 cat("\\begin{adjustwidth}{1cm}{0cm}")
 cat("\\begin{verbatim}\n")
-  df_descr_1 <- readRDS("export/df_descr.rds") |> select(1:8)
+  df_descr_1 <- readRDS("export/rds/df_descr.rds") |> select(1:8)
   sep = c(rep(" ", length(df_descr_1)))
   df_formatted <- df_descr_1 |>
      mutate(
@@ -148,7 +148,7 @@ cat("\\begin{verbatim}\n")
     sep = "     "
   )
   cat("\n")
-  df_descr_2 <- readRDS("export/df_descr.rds") |> select(-(2:8))
+  df_descr_2 <- readRDS("export/rds/df_descr.rds") |> select(-(2:8))
   df_formatted <- df_descr_2
   df_formatted <- df_formatted |>
     mutate(
@@ -169,6 +169,21 @@ cat("\\begin{verbatim}\n")
   TABLE_NUMBER <- TABLE_NUMBER + 1
   
 cat("\\end{verbatim}")
+
+cat("\\vspace{5mm}")
+cat("\\begin{center}\n")
+cat("\\includegraphics[width=0.45\\textwidth]{export/img/placeholder.pdf}\n")
+cat("\\hfill\n")
+cat("\\includegraphics[width=0.45\\textwidth]{export/img/placeholder.pdf}\n")
+cat("\\end{center}\n")
+
+cat("\\vspace{5mm}")
+cat("\\begin{center}\n")
+cat("\\includegraphics[width=0.45\\textwidth]{export/img/placeholder.pdf}\n")
+cat("\\hfill\n")
+cat("\\includegraphics[width=0.45\\textwidth]{export/img/placeholder.pdf}\n")
+cat("\\end{center}\n")
+
 cat("\\end{adjustwidth}")
 ```
 
@@ -178,11 +193,12 @@ cat("\\end{adjustwidth}")
 #| label: comparisons
 #| echo: false
 #| results: asis
+#| out.width: "80%"
 
 cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ") MULTIPLE COMPARISONS}}\\vspace{5mm}"))
 
 rds_files <- list.files(
-  path = "export", 
+  path = "export/rds", 
   pattern = "^df_shapiro_.*\\.rds$",
   full.names = FALSE,
   ignore.case = TRUE
@@ -203,7 +219,7 @@ for (name in clean_names) {
   # NORMALITY CHECK
   # ------------------------------------------------------------------
   cat("· NORMALITY CHECK\n\n")
-  df_shapiro <- readRDS(paste0("export/df_shapiro_", name, ".rds")) |> select(-2)
+  df_shapiro <- readRDS(paste0("export/rds/df_shapiro_", name, ".rds")) |> select(-2)
   sep = c(rep(" ", length(df_shapiro)))
   df_formatted <- df_shapiro |>
     mutate(
@@ -224,48 +240,79 @@ for (name in clean_names) {
   cat("\n")
   if(all(df_shapiro$p > 0.05)) {
     cat("Normality RESPECTED --> ANOVA\n\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
-    cat("\nANOVA\n")
+    
+    # ANOVA
+    # ----------------------------------------------------------------
+    cat("· ANOVA [CORRECTED]\n\n")
+    df_anova <- readRDS(paste0("export/rds/df_anova_", name, ".rds"))
+    sep = c(rep(" ", length(df_anova)))
+    df_formatted <- df_anova |>
+      mutate(
+        across(where(is.numeric), ~ sprintf("%.3f", .))
+      )
+    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
+    colnames(df_formatted) <- c("Statistic", "DoF", "P-value")
+    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+    write.table(
+      df_aligned,
+      row.names = FALSE,
+      col.names = FALSE,
+      quote = FALSE,
+      sep = "     "
+    )
+    cat("\n")
+    df_anova_corrected <- readRDS(paste0("export/rds/df_anova_corrected_", name, ".rds"))
+    sep = c(rep(" ", length(df_anova_corrected)))
+    df_formatted <- df_anova_corrected |>
+      mutate(
+        across(where(is.numeric), ~ sprintf("%.3f", .))
+      )
+    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
+    colnames(df_formatted) <- c("Statistic", "DoF", "P-value", "Correction")
+    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+    write.table(
+      df_aligned,
+      row.names = FALSE,
+      col.names = FALSE,
+      quote = FALSE,
+      sep = "     "
+    )
+    cat("\n")
+    
+    # HOLM/BONFERRONI PAIRWISE COMPARISON ----------------------------
+    cat("· HOLM/BONFERROBI PAIRWISE COMPARISON\n\n")
+    df_pairwise <- readRDS(paste0("export/rds/df_pairwise_", name, ".rds")) |> select(c(2, 3, 6, 9))
+    sep = c(rep(" ", length(df_pairwise)))
+    df_formatted <- df_pairwise |>
+      mutate(
+        statistic = sprintf("%.2f", statistic),
+        p.adj = sprintf("%.3f", p.adj)
+      )
+    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
+    colnames(df_formatted) <- c("GR1", "GR2", "Statistic", "P-value")
+    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
+    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
+    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
+    write.table(
+      df_aligned,
+      row.names = FALSE,
+      col.names = FALSE,
+      quote = FALSE,
+      sep = "     "
+    )
+    cat("\n")
+
   } else {
     cat("Normality VIOLATED --> FRIEDMAN TEST\n\n")
     
     # FRIEDMAN TEST
     # ----------------------------------------------------------------
     cat("· FRIEDMAN TEST\n\n")
-    df_friedman <- readRDS(paste0("export/df_friedman_", name, ".rds"))
+    df_friedman <- readRDS(paste0("export/rds/df_friedman_", name, ".rds"))
     sep = c(rep(" ", length(df_friedman)))
     df_formatted <- df_friedman |>
       mutate(
@@ -287,7 +334,7 @@ for (name in clean_names) {
     
     # DURBIN/CONOVER PAIRWISE COMPARISON -----------------------------
     cat("· DURBIN/CONOVER PAIRWISE COMPARISON\n\n")
-    df_conover <- readRDS(paste0("export/df_conover_", name, ".rds"))
+    df_conover <- readRDS(paste0("export/rds/df_conover_", name, ".rds"))
     sep = c(rep(" ", length(df_conover)))
     df_formatted <- df_conover
     df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
@@ -304,6 +351,12 @@ for (name in clean_names) {
     )
   }
   cat("\\end{verbatim}\n")
+  
+  cat("\\vspace{5mm}")
+  cat("\\begin{center}")
+  cat("\\includegraphics[width=0.75\\textwidth]{export/img/placeholder.pdf}")
+  cat("\\end{center}")
+  
   cat("\\end{minipage}\n")
   cat("\\end{adjustwidth}\n")
 }

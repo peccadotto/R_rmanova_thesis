@@ -17,5 +17,7 @@ descriptive <- function(df, var_name) {
   )
 }
 
-df_descr <- map_dfr(colnames(df[-1]), ~ descriptive(df, .x))
+df_descr <- map_dfr(colnames(df_complete[-1]), ~ descriptive(df_complete, .x))
 rownames(df_descr) <- NULL
+table_path <- file.path("export/rds/df_descr.rds")
+saveRDS(df_descr, file = table_path)

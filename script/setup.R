@@ -31,7 +31,14 @@ check_packages <- function(pkg_list) {
 
 check_packages(packages)
 
-if (!dir.exists("export")) {
-  dir.create("export")
-  message("Folder 'export' created")
+folders <- c(
+  "export",
+  "export/rds",
+  "export/img"
+)
+for (folder in folders){
+  if (!dir.exists(folder)) {
+    dir.create(folder)
+    message(paste0("Folder '", folder ,"' created"))
+  }
 }
