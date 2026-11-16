@@ -3,5 +3,4 @@
 .RData
 .Ruserdata
 *.Rproj
-Rplots.pdf
-backup_original/
+.vscode
