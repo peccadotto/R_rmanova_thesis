@@ -1,5 +1,5 @@
 ---
-lang: it
+lang: en
 format:
   pdf:
     pdf-engine: pdflatex
@@ -18,6 +18,7 @@ format:
           \usepackage{fancyhdr}
           \usepackage{lastpage}
           \usepackage{changepage}
+          \usepackage{xcolor}
           
           \pagestyle{fancy}
           \fancyhf{}
@@ -59,11 +60,12 @@ TABLE_NUMBER <- 0
 #| echo: false
 #| results: asis
 
-cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ".a) SAMPLE SIZE}}\\vspace{5mm}"))
+cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ".a) SAMPLE SIZE}}}\\vspace{5mm}"))
 
 cat("\\begin{adjustwidth}{1cm}{0cm}")
 cat("\\begin{verbatim}")
   df_sample <- readRDS("export/rds/df_samples.rds")
+  cat(paste("Given alpha = 0.05\n\n"))
   sep = c(rep(" ", length(df_sample)))
   df_formatted <- df_sample |>
     mutate(
@@ -82,6 +84,7 @@ cat("\\begin{verbatim}")
   )
 cat("\\end{verbatim}")
 cat("\\end{adjustwidth}")
+cat("\\vspace{5mm}")
 ```
 
 ```{r}
@@ -89,12 +92,12 @@ cat("\\end{adjustwidth}")
 #| echo: false
 #| results: asis
 
-cat(paste0("\\vspace{5mm}\\texttt{\\textbf{Table ", TABLE_NUMBER, ".b) POWER ANALYSIS}}\\vspace{5mm}"))
+cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ".b) POWER ANALYSIS}}}\\vspace{5mm}"))
 
 cat("\\begin{adjustwidth}{1cm}{0cm}\n")
 cat("\\begin{verbatim}\n")
   df <- readRDS("export/rds/df_complete.rds")
-  cat(paste("With N =", nrow(df), "\n\n"))
+  cat(paste("Given N =", nrow(df), "+ alpha = 0.05\n\n"))
   df_powers <- readRDS("export/rds/df_powers.rds")
   sep = c(rep(" ", length(df_powers)))
   df_formatted <- df_powers|>
@@ -115,6 +118,7 @@ cat("\\begin{verbatim}\n")
   TABLE_NUMBER <- TABLE_NUMBER + 1
 cat("\\end{verbatim}")
 cat("\\end{adjustwidth}")
+cat("\\vspace{5mm}")
 ```
 
 \newpage
@@ -124,11 +128,12 @@ cat("\\end{adjustwidth}")
 #| echo: false
 #| results: asis
 
-cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ") DESCRIPTIVE STATISTICS}}\\vspace{5mm}"))
+cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ") DESCRIPTIVE STATISTICS}}}\\vspace{5mm}"))
 
 cat("\\begin{adjustwidth}{1cm}{0cm}")
 cat("\\begin{verbatim}\n")
-  df_descr_1 <- readRDS("export/rds/df_descr.rds") |> select(1:8)
+  df_descr_1 <- readRDS("export/rds/df_descr.rds") |>
+    select(var_name, n_valid, n_missing, mean, sd_val, ci_lower, ci_upper)
   sep = c(rep(" ", length(df_descr_1)))
   df_formatted <- df_descr_1 |>
      mutate(
@@ -136,7 +141,7 @@ cat("\\begin{verbatim}\n")
        n_valid = as.integer(n_valid),
        n_missing = as.integer(n_missing)
       )
-  colnames(df_formatted) <- c("Variable", "N", "Missing", "Mean", "Median", "SD", "Min", "Max")
+  colnames(df_formatted) <- c("Variable", "N", "Missing", "Mean", "SD", "95%CI Low", "95%CI High")
   df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
   df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
   df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
@@ -148,13 +153,13 @@ cat("\\begin{verbatim}\n")
     sep = "     "
   )
   cat("\n")
-  df_descr_2 <- readRDS("export/rds/df_descr.rds") |> select(-(2:8))
-  df_formatted <- df_descr_2
-  df_formatted <- df_formatted |>
+  df_descr_2 <- readRDS("export/rds/df_descr.rds") |>
+    select(var_name, min_val, q1, q2, q3, max_val, sw_p)
+  df_formatted <- df_descr_2 |>
     mutate(
       across(where(is.numeric), ~ sprintf("%.3f", .))
     )
-  colnames(df_formatted) <- c("Variable", "Shapiro (w)", "Shapiro (p)", "25° perc.", "50° perc", "75° perc.")
+  colnames(df_formatted) <- c("Variable", "Min", "Q1", "Q2", "Q3", "Max", "Shapiro (p)")
   sep = c(rep(" ", length(df_formatted)))
   df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
   df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
@@ -167,22 +172,22 @@ cat("\\begin{verbatim}\n")
     sep = "     "
   )
   TABLE_NUMBER <- TABLE_NUMBER + 1
-  
+
 cat("\\end{verbatim}")
-
 cat("\\vspace{5mm}")
-cat("\\begin{center}\n")
-cat("\\includegraphics[width=0.45\\textwidth]{export/img/placeholder.pdf}\n")
-cat("\\hfill\n")
-cat("\\includegraphics[width=0.45\\textwidth]{export/img/placeholder.pdf}\n")
-cat("\\end{center}\n")
 
-cat("\\vspace{5mm}")
-cat("\\begin{center}\n")
-cat("\\includegraphics[width=0.45\\textwidth]{export/img/placeholder.pdf}\n")
-cat("\\hfill\n")
-cat("\\includegraphics[width=0.45\\textwidth]{export/img/placeholder.pdf}\n")
-cat("\\end{center}\n")
+  plot_list_descr <- list.files(path = "export/img", pattern = "^plot_descr_.*\\.pdf$", full.names = TRUE)
+  plot_list_qq <- list.files(path = "export/img", pattern = "^plot_qq_.*\\.pdf$", full.names = TRUE)
+  plot_number <- length(plot_list_descr)
+
+for (n in 1:plot_number) {
+  cat("\\vspace{5mm}")
+  cat("\\begin{center}\n")
+  cat(paste0("\\includegraphics[width=0.45\\textwidth]{", plot_list_descr[n],"}\n"))
+  cat("\\hfill\n")
+  cat(paste0("\\includegraphics[width=0.45\\textwidth]{", plot_list_qq[n],"}\n"))
+  cat("\\end{center}\n")
+}
 
 cat("\\end{adjustwidth}")
 ```
@@ -190,12 +195,12 @@ cat("\\end{adjustwidth}")
 \newpage
 
 ```{r}
-#| label: comparisons
+#| label: comparison
 #| echo: false
 #| results: asis
 #| out.width: "80%"
 
-cat(paste0("\\texttt{\\textbf{Table ", TABLE_NUMBER, ") MULTIPLE COMPARISONS}}\\vspace{5mm}"))
+cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ") MULTIPLE COMPARISONS (\\underline{- using complete cases only -})}}}\\vspace{5mm}"))
 
 rds_files <- list.files(
   path = "export/rds", 
@@ -203,22 +208,24 @@ rds_files <- list.files(
   full.names = FALSE,
   ignore.case = TRUE
 )
-clean_names <- sub("^df_shapiro_", "", rds_files)
-clean_names <- sub("\\.rds$", "", clean_names)
+var_names <- sub("^df_shapiro_", "", rds_files)
+var_names <- sub("\\.rds$", "", var_names)
+var_names <- var_names[!is.na(var_names) & var_names != ""]
 
-for (name in clean_names) {
+for (name in var_names) {
   
   cat("\\begin{adjustwidth}{1cm}{0cm}")
   cat("\\begin{minipage}{\\linewidth}")
+  header <- paste0("Table ", TABLE_NUMBER, "." , which(var_names == name), ") [", toupper(name), "] ANALYSIS")
+  cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, "." , which(var_names == name), ") [", toupper(name), "] ANALYSIS}}}"))
   cat("\\begin{verbatim}")
-  
-  header <- paste0("Table ", TABLE_NUMBER, "." , which(clean_names == name), ") [", toupper(name), "] ANALYSIS")
-  cat(header, "\n\n")
   
   # ------------------------------------------------------------------
   # NORMALITY CHECK
   # ------------------------------------------------------------------
-  cat("· NORMALITY CHECK\n\n")
+  cat("\\end{verbatim}")
+  cat("\\textcolor{red}{\\texttt{· NORMALITY CHECK\\newline}}")
+  cat("\\begin{verbatim}")
   df_shapiro <- readRDS(paste0("export/rds/df_shapiro_", name, ".rds")) |> select(-2)
   sep = c(rep(" ", length(df_shapiro)))
   df_formatted <- df_shapiro |>
@@ -239,11 +246,15 @@ for (name in clean_names) {
   )
   cat("\n")
   if(all(df_shapiro$p > 0.05)) {
-    cat("Normality RESPECTED --> ANOVA\n\n")
+    cat("\\end{verbatim}")
+    cat("\\colorbox{yellow}{\\texttt{Normality RESPECTED --> ANOVA}}")
+    cat("\\begin{verbatim}")
     
     # ANOVA
     # ----------------------------------------------------------------
-    cat("· ANOVA [CORRECTED]\n\n")
+    cat("\\end{verbatim}")
+    cat("\\textcolor{red}{\\texttt{· ANOVA ± CORRECTED ANOVA\\newline}}")
+    cat("\\begin{verbatim}")
     df_anova <- readRDS(paste0("export/rds/df_anova_", name, ".rds"))
     sep = c(rep(" ", length(df_anova)))
     df_formatted <- df_anova |>
@@ -251,7 +262,7 @@ for (name in clean_names) {
         across(where(is.numeric), ~ sprintf("%.3f", .))
       )
     df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-    colnames(df_formatted) <- c("Statistic", "DoF", "P-value")
+    colnames(df_formatted) <- c("Statistic", "DoF", "P-value", "P-Mauchly", "GG-epsilon")
     df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
     df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
     df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
@@ -262,6 +273,21 @@ for (name in clean_names) {
       quote = FALSE,
       sep = "     "
     )
+    cat("\n")
+    if(df_anova$p_mauchly >= 0.05) {
+      cat("\\end{verbatim}")
+      cat(paste0("\\colorbox{yellow}{\\texttt{p-Mauchly >= 0.05 -> No correction needed}}\\newline"))
+      cat("\\begin{verbatim}")
+    } else {
+      cat("\\end{verbatim}")
+      cat(paste0("\\colorbox{yellow}{\\texttt{p-Mauchly < 0.05 -> Correction needed}}\\newline\\newline"))
+      if (df_anova$GGe < 0.75) {
+        cat(paste0("\\colorbox{yellow}{\\texttt{GG-epsilon <= 0.75 -> Greenhouse-Geisser correction}}\\newline"))
+      } else {
+        cat(paste0("\\colorbox{yellow}{\\texttt{GG-epsilon > 0.75 -> Huynh-Feldt correction}}\\newline"))
+      }
+      cat("\\begin{verbatim}")
+    }
     cat("\n")
     df_anova_corrected <- readRDS(paste0("export/rds/df_anova_corrected_", name, ".rds"))
     sep = c(rep(" ", length(df_anova_corrected)))
@@ -283,17 +309,27 @@ for (name in clean_names) {
     )
     cat("\n")
     
-    # HOLM/BONFERRONI PAIRWISE COMPARISON ----------------------------
-    cat("· HOLM/BONFERROBI PAIRWISE COMPARISON\n\n")
-    df_pairwise <- readRDS(paste0("export/rds/df_pairwise_", name, ".rds")) |> select(c(2, 3, 6, 9))
+    # HOLM/BONFERRONI PAIRWISE COMPARISON
+    cat("\\end{verbatim}\n")
+    cat("\\textcolor{red}{\\texttt{· HOLM/BONFERRONI PAIRWISE COMPARISON\\newline}}")
+    cat("\\begin{verbatim}\n")
+    df_pairwise <- readRDS(paste0("export/rds/df_p_values_", name, ".rds")) |>
+      select(group1, group2, estimate, conf.low, conf.high, statistic, effsize, p.adj)
     sep = c(rep(" ", length(df_pairwise)))
     df_formatted <- df_pairwise |>
       mutate(
+        estimate = sprintf("%.2f", estimate),
+        conf.low = sprintf("%.2f", conf.low),
+        conf.high = sprintf("%.2f", conf.high),
         statistic = sprintf("%.2f", statistic),
-        p.adj = sprintf("%.3f", p.adj)
+        effsize = sprintf("%.2f", effsize),
+        p.adj = case_when(
+          p.adj < 0.001 ~ "< 0.001",
+          TRUE ~ sprintf("%.3f", p.adj)
+        )
       )
     df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-    colnames(df_formatted) <- c("GR1", "GR2", "Statistic", "P-value")
+    colnames(df_formatted) <- c("Group 1", "Group 2", "Mean Diff", "95% CI Low", "95% CI High", "t", "Cohen's d", "P-value")
     df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
     df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
     df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
@@ -302,16 +338,20 @@ for (name in clean_names) {
       row.names = FALSE,
       col.names = FALSE,
       quote = FALSE,
-      sep = "     "
+      sep = "   "
     )
     cat("\n")
 
   } else {
-    cat("Normality VIOLATED --> FRIEDMAN TEST\n\n")
+    cat("\\end{verbatim}")
+    cat("\\colorbox{yellow}{\\texttt{Normality VIOLATED --> FRIEDMAN'S TEST}}\\newline")
+    cat("\\begin{verbatim}")
     
     # FRIEDMAN TEST
     # ----------------------------------------------------------------
-    cat("· FRIEDMAN TEST\n\n")
+    cat("\\end{verbatim}")
+    cat("\\textcolor{red}{\\texttt{· FRIEDMAN'S TEST\\newline}}")
+    cat("\\begin{verbatim}")
     df_friedman <- readRDS(paste0("export/rds/df_friedman_", name, ".rds"))
     sep = c(rep(" ", length(df_friedman)))
     df_formatted <- df_friedman |>
@@ -332,13 +372,26 @@ for (name in clean_names) {
     )
     cat("\n")
     
-    # DURBIN/CONOVER PAIRWISE COMPARISON -----------------------------
-    cat("· DURBIN/CONOVER PAIRWISE COMPARISON\n\n")
-    df_conover <- readRDS(paste0("export/rds/df_conover_", name, ".rds"))
+    # DURBIN/CONOVER PAIRWISE COMPARISON
+    cat("\\end{verbatim}")
+    cat("\\textcolor{red}{\\texttt{· DURBIN/CONOVER PAIRWISE COMPARISON\\newline}}")
+    cat("\\begin{verbatim}")
+    df_conover <- readRDS(paste0("export/rds/df_conover_", name, ".rds")) |>
+      select(Group1, Group2, med_diff, ci_lower, ci_upper, Statistic, p_value)
     sep = c(rep(" ", length(df_conover)))
-    df_formatted <- df_conover
+    df_formatted <- df_conover |>
+      mutate(
+        med_diff  = sprintf("%.2f", med_diff),
+        ci_lower  = sprintf("%.2f", ci_lower),
+        ci_upper  = sprintf("%.2f", ci_upper),
+        Statistic = sprintf("%.2f", Statistic),
+        p_value   = case_when(
+          p_value < 0.001 ~ "< 0.001",
+          TRUE ~ sprintf("%.3f", p_value)
+        )
+      )
     df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-    colnames(df_formatted) <- c("Time 1", "Time 2", "Statistic", "P-value")
+    colnames(df_formatted) <- c("Group 1", "Group 2", "Median Diff", "95% CI Low", "95% CI High", "Statistic", "P-value")
     df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
     df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
     df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
@@ -347,15 +400,20 @@ for (name in clean_names) {
       row.names = FALSE,
       col.names = FALSE,
       quote = FALSE,
-      sep = "     "
+      sep = "   "
     )
   }
   cat("\\end{verbatim}\n")
   
-  cat("\\vspace{5mm}")
-  cat("\\begin{center}")
-  cat("\\includegraphics[width=0.75\\textwidth]{export/img/placeholder.pdf}")
-  cat("\\end{center}")
+  current_file_path <- file.path("export", "img", paste0("plot_trend_", name, ".pdf"))
+  if (file.exists(current_file_path)) {
+    cat("\\vspace{7.5mm}")
+    cat("\\begin{center}")
+    current_plot <- normalizePath(current_file_path, winslash = "/", mustWork = FALSE)
+    current_plot <- gsub("_", "\\_", current_plot, fixed = TRUE)
+    cat(paste0("\\includegraphics[width=0.75\\textwidth]{{", current_plot, "}}"))
+    cat("\\end{center}")
+  }
   
   cat("\\end{minipage}\n")
   cat("\\end{adjustwidth}\n")

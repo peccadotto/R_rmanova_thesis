@@ -14,7 +14,7 @@ packages <- c(
   "tidyverse"
 )
 
-check_packages <- function(pkg_list) {
+func_check_packages <- function(pkg_list) {
   new_packages <- pkg_list[!(pkg_list %in% installed.packages()[,"Package"])]
   if(length(new_packages) > 0) {
     message(
@@ -29,16 +29,29 @@ check_packages <- function(pkg_list) {
   message("All packages have been successfully loaded")
 }
 
-check_packages(packages)
+func_check_packages(packages)
+rm(func_check_packages)
+rm(packages)
 
-folders <- c(
+folders2create <- c(
   "export",
   "export/rds",
   "export/img"
 )
-for (folder in folders){
+for (folder in folders2create){
   if (!dir.exists(folder)) {
     dir.create(folder)
     message(paste0("Folder '", folder ,"' created"))
   }
 }
+rm(folders2create)
+rm(folder)
+
+my_plot_theme <- theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 22, hjust = 0.5, margin = margin(t = 10, b = 20)),
+    axis.title = element_text(face = "bold", size = 16, color = "black"),
+    axis.text  = element_text(face = "bold", size = 16, color = "black"),
+    axis.line  = element_line(color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black")
+  )
