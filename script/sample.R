@@ -16,7 +16,6 @@ sample_size <- sapply(delta_vals, function(d) {
   })
 })
 colnames(sample_size) <- paste0("Delta ", delta_vals)
-df_samples <- as_tibble(Power = power_vals, sample_size)
+df_samples <- as_tibble(data.frame(Power = power_vals, sample_size))
 table_path <- file.path("export/rds/df_samples.rds")
 saveRDS(df_samples, file = table_path)
-rm(power_vals, sample_size, table_path)

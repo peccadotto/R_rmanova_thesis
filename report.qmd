@@ -64,13 +64,12 @@ cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ".a) SAMPL
 
 cat("\\begin{adjustwidth}{1cm}{0cm}")
 cat("\\begin{verbatim}")
-  df_sample <- readRDS("export/rds/df_samples.rds")
+  df_samples <- readRDS("export/rds/df_samples.rds")
   cat(paste("Given alpha = 0.05\n\n"))
-  sep = c(rep(" ", length(df_sample)))
-  df_formatted <- df_sample |>
-    mutate(
-      Power = sprintf("%.2f", Power)
-    )
+  sep = c(rep(" ", length(df_samples)))
+  df_formatted <- df_samples |> mutate (
+    Power = sprintf("%.2f", Power)
+  )
   colnames(df_formatted) <- c("Power", "Delta = 0.3", "Delta = 0.4", "Delta = 0.5")
   df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
   df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)

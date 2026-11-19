@@ -6,7 +6,6 @@ excel_files <- list.files(
 excel_files <- excel_files[!grepl("^~\\$", basename(excel_files))]
 
 df_complete <- read_excel(excel_files, skip = 2) |> clean_names()
-rm(excel_files)
 table_path <- file.path("export/rds/df_complete.rds")
 saveRDS(df_complete, file = table_path)
 
@@ -23,4 +22,3 @@ df_long <- df_complete |>
   )
 table_path <- file.path("export/rds/df_long.rds")
 saveRDS(df_long, file = table_path)
-rm(table_path)

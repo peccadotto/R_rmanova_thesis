@@ -4,16 +4,41 @@ for (var in colnames(df_complete)[-1]) {
   
   message("Starting to create plot (descriptive analysis) for [", toupper(var), "]")
   plot <- ggplot(df_complete, aes(x = .data[[var]])) +
-    geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "white", color = "black", linewidth = 1) +
-    geom_density(color = "black", linewidth = 1.25) +
-    geom_vline(xintercept = mean(df_complete[[var]], na.rm = TRUE), linetype = "dashed", color = "black", linewidth = 1.25) +
-    geom_vline(xintercept = median(df_complete[[var]], na.rm = TRUE), linetype = "solid", color = "black", linewidth = 1.25) +
+    geom_histogram(
+      aes(y = after_stat(density)),
+      bins = 30,
+      fill = "white",
+      color = "black",
+      linewidth = 1
+    ) +
+    geom_density(
+      color = "black",
+      linewidth = 1.25
+    ) +
+    geom_labelvline(
+      xintercept = mean(df_complete[[var]], na.rm = TRUE),
+      color = "red",
+      linewidth = 1.25,
+      label = "MEAN",
+      hjust = 0.1, 
+      size = 16 / ggplot2:::.pt,
+      fontface = "bold"
+    ) +
+    geom_labelvline(
+      xintercept = median(df_complete[[var]], na.rm = TRUE),
+      color = "blue",
+      linewidth = 1.25,
+      label = "MEDIAN",
+      hjust = 0.25,
+      size = 16 / ggplot2:::.pt,
+      fontface = "bold"
+    ) +
     labs(
       title = toupper(var),
-      caption = "Solid vertical line = Median, Dashed vertical line = Mean",
       x = NULL,
       y = NULL
     ) +
+    coord_cartesian(ylim = c(0, NA), expand = FALSE) + 
     my_plot_theme
   obj_name <- paste0("plot_descr_", var)
   assign(obj_name, plot, envir = .GlobalEnv)
@@ -29,11 +54,12 @@ for (var in colnames(df_complete)[-1]) {
     )
   }
   message(paste0("✔ Plot for [", toupper(var) , "] created"))
+  rm(plot)
   
   message("Starting to create QQ-plot for [", toupper(var), "]")
   plot_qq <- ggplot(df_complete, aes(sample = .data[[var]])) +
     stat_qq(fill = "white", color = "black", size = 4) +
-    stat_qq_line(color = "black", linewidth = 1) +
+    stat_qq_line(color = "red", linewidth = 1) +
     labs(
       title = toupper(var),
       x = NULL,
@@ -54,6 +80,7 @@ for (var in colnames(df_complete)[-1]) {
     )
   }
   message(paste0("✔ QQ-Plot for [", toupper(var) , "] created"))
+  rm(plot_qq, plot_path_svg)
 
 }
 

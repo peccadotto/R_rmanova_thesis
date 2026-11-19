@@ -1,4 +1,5 @@
-# 1. CHECK AND INSTALL REQUIRED PACKAGES ---------------------------------------
+# 1. PROJECT SETUP -------------------------------------------------------------
+     source("script/functions.R") 
      source("script/setup.R")
 
 # 2. DATA IMPORT ---------------------------------------------------------------
@@ -12,10 +13,9 @@
 
 # 5. DESCRIPTIVE ANALYSIS ------------------------------------------------------
      source("script/descr.R")
-     source("script/plot_descr.R")
 
 # 6. REPEATED MEASURES STATISTICAL ANALYSIS ------------------------------------
      source("script/comparison.R")
   
-# 7. DATA EXPORT ---------------------------------------------------------------  
+# 7. DATA EXPORT ---------------------------------------------------------------
      source("script/export.R")
