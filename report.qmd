@@ -282,12 +282,12 @@ for (name in var_names) {
     # CONOVER PAIRWISE COMPARISON
     cat("\\textcolor{red}{\\texttt{· CONOVER PAIRWISE COMPARISON\\newline}}\n")
     df_conover <- readRDS(paste0("export/rds/df_conover_", name, ".rds")) |>
-      select(group1, group2, med_diff, ci_lower, ci_upper, statistic, p_value) |>
+      select(Group1, Group2, med_diff, ci_lower, ci_upper, Statistic, p_value) |>
       mutate(
         med_diff = sprintf("%.2f", med_diff),
         ci_lower = sprintf("%.2f", ci_lower),
         ci_upper = sprintf("%.2f", ci_upper),
-        statistic = sprintf("%.2f", statistic),
+        Statistic = sprintf("%.2f", Statistic),
         p_value = case_when(
           p_value < 0.001 ~ "< 0.001",
           TRUE ~ sprintf("%.3f", p_value)
