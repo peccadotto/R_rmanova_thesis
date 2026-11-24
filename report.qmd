@@ -9,7 +9,7 @@ format:
       - top = 25mm
       - bottom = 25mm
       - left = 15mm
-      - right = 15 mm
+      - right = 15mm
       - headsep = 8mm
     fontsize: 10pt
     linestretch: 1
@@ -40,7 +40,7 @@ format:
             \ifnum\minutes<10 0\fi\the\minutes:00%
           }
           \renewcommand{\footrulewidth}{0pt}
-          \fancyfoot[L]{\texttt{Print date:~\the\day-\ifnum\month<10 0\fi\the\month-\the\year\ \printtime}}
+          \fancyfoot[L]{\texttt{Print date:~\ifnum\day<10 0\fi\the\day-\ifnum\month<10 0\fi\the\month-\the\year\ \printtime}}
           \fancyfoot[R]{\texttt{Page \thepage\ of \pageref*{LastPage}}}
 ---
 
@@ -49,10 +49,32 @@ format:
 #| include: false
 
 library(dplyr)
-library(lubridate)
 library(tidyr)
 
 TABLE_NUMBER <- 0
+
+print_aligned_table <- function(df, headers, sep = "     ", intro = NULL, wrap_verbatim = TRUE) {
+  if (wrap_verbatim) cat("\\begin{verbatim}\n")
+  if (!is.null(intro)) cat(intro)
+
+  cols_aligned <- mapply(
+    function(col, hdr) format(c(hdr, " ", as.character(col)), justify = "centre"),
+    df,
+    headers,
+    SIMPLIFY = FALSE
+  )
+  df_aligned <- as.data.frame(cols_aligned, stringsAsFactors = FALSE)
+
+  write.table(
+    df_aligned,
+    row.names = FALSE,
+    col.names = FALSE,
+    quote = FALSE,
+    sep = sep
+  )
+  cat("\n")
+  if (wrap_verbatim) cat("\\end{verbatim}\n")
+}
 ```
 
 ```{r}
@@ -61,29 +83,18 @@ TABLE_NUMBER <- 0
 #| results: asis
 
 cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ".a) SAMPLE SIZE}}}\\vspace{5mm}"))
+cat("\\begin{adjustwidth}{1cm}{0cm}\n")
 
-cat("\\begin{adjustwidth}{1cm}{0cm}")
-cat("\\begin{verbatim}")
-  df_samples <- readRDS("export/rds/df_samples.rds")
-  cat(paste("Given alpha = 0.05\n\n"))
-  sep = c(rep(" ", length(df_samples)))
-  df_formatted <- df_samples |> mutate (
-    Power = sprintf("%.2f", Power)
-  )
-  colnames(df_formatted) <- c("Power", "Delta = 0.3", "Delta = 0.4", "Delta = 0.5")
-  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-  write.table(
-    df_aligned,
-    row.names = FALSE,
-    col.names = FALSE,
-    quote = FALSE,
-    sep = "     "
-  )
-cat("\\end{verbatim}")
-cat("\\end{adjustwidth}")
-cat("\\vspace{5mm}")
+df_samples <- readRDS("export/rds/df_samples.rds") |>
+  mutate(Power = sprintf("%.2f", Power))
+
+print_aligned_table(
+  df_samples,
+  headers = c("Power", "Delta = 0.3", "Delta = 0.4", "Delta = 0.5"),
+  intro = "Given alpha = 0.05\n\n"
+)
+
+cat("\\end{adjustwidth}\n\\vspace{5mm}")
 ```
 
 ```{r}
@@ -92,32 +103,20 @@ cat("\\vspace{5mm}")
 #| results: asis
 
 cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ".b) POWER ANALYSIS}}}\\vspace{5mm}"))
-
 cat("\\begin{adjustwidth}{1cm}{0cm}\n")
-cat("\\begin{verbatim}\n")
-  df <- readRDS("export/rds/df_complete.rds")
-  cat(paste("Given N =", nrow(df), "+ alpha = 0.05\n\n"))
-  df_powers <- readRDS("export/rds/df_powers.rds")
-  sep = c(rep(" ", length(df_powers)))
-  df_formatted <- df_powers|>
-    mutate(
-      across(where(is.numeric), ~ sprintf("%.2f", .))
-    )
-  colnames(df_formatted) <- c("Delta = 0.3", "Delta = 0.4", "Delta = 0.5")
-  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-  write.table(
-    df_aligned,
-    row.names = FALSE,
-    col.names = FALSE,
-    quote = FALSE,
-    sep = "     "
-  )
-  TABLE_NUMBER <- TABLE_NUMBER + 1
-cat("\\end{verbatim}")
-cat("\\end{adjustwidth}")
-cat("\\vspace{5mm}")
+
+df <- readRDS("export/rds/df_complete.rds")
+df_powers <- readRDS("export/rds/df_powers.rds") |>
+  mutate(across(where(is.numeric), ~ sprintf("%.2f", .)))
+
+print_aligned_table(
+  df_powers,
+  headers = c("Delta = 0.3", "Delta = 0.4", "Delta = 0.5"),
+  intro = paste("Given N =", nrow(df), "+ alpha = 0.05\n\n")
+)
+TABLE_NUMBER <- TABLE_NUMBER + 1
+
+cat("\\end{adjustwidth}\n\\vspace{5mm}")
 ```
 
 \newpage
@@ -128,64 +127,49 @@ cat("\\vspace{5mm}")
 #| results: asis
 
 cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ") DESCRIPTIVE STATISTICS}}}\\vspace{5mm}"))
+cat("\\begin{adjustwidth}{1cm}{0cm}\n\\begin{verbatim}\n")
 
-cat("\\begin{adjustwidth}{1cm}{0cm}")
-cat("\\begin{verbatim}\n")
-  df_descr_1 <- readRDS("export/rds/df_descr.rds") |>
-    select(var_name, n_valid, n_missing, mean, sd_val, ci_lower, ci_upper)
-  sep = c(rep(" ", length(df_descr_1)))
-  df_formatted <- df_descr_1 |>
-     mutate(
-       across(where(is.numeric), ~ sprintf("%.3f", .)),
-       n_valid = as.integer(n_valid),
-       n_missing = as.integer(n_missing)
-      )
-  colnames(df_formatted) <- c("Variable", "N", "Missing", "Mean", "SD", "95%CI Low", "95%CI High")
-  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-  write.table(
-    df_aligned,
-    row.names = FALSE,
-    col.names = FALSE,
-    quote = FALSE,
-    sep = "     "
+df_descr <- readRDS("export/rds/df_descr.rds")
+
+df_descr_1 <- df_descr |>
+  select(var_name, n_valid, n_missing, mean, sd, ci_lower, ci_upper) |>
+  mutate(
+    across(where(is.numeric), ~ sprintf("%.3f", .)),
+    n_valid = as.integer(n_valid),
+    n_missing = as.integer(n_missing)
   )
-  cat("\n")
-  df_descr_2 <- readRDS("export/rds/df_descr.rds") |>
-    select(var_name, min_val, q1, q2, q3, max_val, sw_p)
-  df_formatted <- df_descr_2 |>
-    mutate(
-      across(where(is.numeric), ~ sprintf("%.3f", .))
-    )
-  colnames(df_formatted) <- c("Variable", "Min", "Q1", "Q2", "Q3", "Max", "Shapiro (p)")
-  sep = c(rep(" ", length(df_formatted)))
-  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-  write.table(
-    df_aligned,
-    row.names = FALSE,
-    col.names = FALSE,
-    quote = FALSE,
-    sep = "     "
-  )
-  TABLE_NUMBER <- TABLE_NUMBER + 1
+print_aligned_table(
+  df_descr_1,
+  headers = c("Variable", "N", "Missing", "Mean", "SD", "95%CI Low", "95%CI High"),
+  wrap_verbatim = FALSE
+)
 
-cat("\\end{verbatim}")
-cat("\\vspace{5mm}")
+cat("\n")
 
-  plot_list_descr <- list.files(path = "export/img", pattern = "^plot_descr_.*\\.pdf$", full.names = TRUE)
-  plot_list_qq <- list.files(path = "export/img", pattern = "^plot_qq_.*\\.pdf$", full.names = TRUE)
-  plot_number <- length(plot_list_descr)
+df_descr_2 <- df_descr |>
+  select(var_name, min, q1, q2, q3, max, sw_p) |>
+  mutate(across(where(is.numeric), ~ sprintf("%.3f", .)))
+print_aligned_table(
+  df_descr_2,
+  headers = c("Variable", "Min", "Q1", "Q2", "Q3", "Max", "Shapiro (p)"),
+  wrap_verbatim = FALSE
+)
 
-for (n in 1:plot_number) {
-  cat("\\vspace{5mm}")
-  cat("\\begin{center}\n")
-  cat(paste0("\\includegraphics[width=0.45\\textwidth]{", plot_list_descr[n],"}\n"))
-  cat("\\hfill\n")
-  cat(paste0("\\includegraphics[width=0.45\\textwidth]{", plot_list_qq[n],"}\n"))
-  cat("\\end{center}\n")
+TABLE_NUMBER <- TABLE_NUMBER + 1
+
+cat("\\end{verbatim}\n\\vspace{5mm}\n")
+
+for (var_name in df_descr$var_name) {
+  descr_plot <- file.path("export/img", paste0("plot_descr_", var_name, ".pdf"))
+  qq_plot <- file.path("export/img", paste0("plot_qq_", var_name, ".pdf"))
+  if (file.exists(descr_plot) && file.exists(qq_plot)) {
+    cat("\\vspace{5mm}")
+    cat("\\begin{center}\n")
+    cat(paste0("\\includegraphics[width=0.45\\textwidth]{", descr_plot, "}\n"))
+    cat("\\hfill\n")
+    cat(paste0("\\includegraphics[width=0.45\\textwidth]{", qq_plot, "}\n"))
+    cat("\\end{center}\n")
+  }
 }
 
 cat("\\end{adjustwidth}")
@@ -199,10 +183,10 @@ cat("\\end{adjustwidth}")
 #| results: asis
 #| out.width: "80%"
 
-cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ") MULTIPLE COMPARISONS (\\underline{- using complete cases only -})}}}\\vspace{5mm}"))
+cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ") MULTIPLE COMPARISONS (\\underline{- complete cases only -})}}}\\vspace{5mm}"))
 
 rds_files <- list.files(
-  path = "export/rds", 
+  path = "export/rds",
   pattern = "^df_shapiro_.*\\.rds$",
   full.names = FALSE,
   ignore.case = TRUE
@@ -212,110 +196,59 @@ var_names <- sub("\\.rds$", "", var_names)
 var_names <- var_names[!is.na(var_names) & var_names != ""]
 
 for (name in var_names) {
-  
-  cat("\\begin{adjustwidth}{1cm}{0cm}")
-  cat("\\begin{minipage}{\\linewidth}")
-  header <- paste0("Table ", TABLE_NUMBER, "." , which(var_names == name), ") [", toupper(name), "] ANALYSIS")
-  cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, "." , which(var_names == name), ") [", toupper(name), "] ANALYSIS}}}"))
-  cat("\\begin{verbatim}")
-  
+
+  cat("\\begin{adjustwidth}{1cm}{0cm}\n")
+  cat("\\begin{minipage}{\\linewidth}\n")
+  cat(paste0("\\textcolor{red}{\\texttt{\\textbf{Table ", TABLE_NUMBER, ".", which(var_names == name), ") [", toupper(name), "] ANALYSIS}}}\\newline\\newline\n"))
+
   # ------------------------------------------------------------------
   # NORMALITY CHECK
   # ------------------------------------------------------------------
-  cat("\\end{verbatim}")
-  cat("\\textcolor{red}{\\texttt{· NORMALITY CHECK\\newline}}")
-  cat("\\begin{verbatim}")
+  cat("\\textcolor{red}{\\texttt{· NORMALITY CHECK\\newline}}\n")
   df_shapiro <- readRDS(paste0("export/rds/df_shapiro_", name, ".rds")) |> select(-2)
-  sep = c(rep(" ", length(df_shapiro)))
-  df_formatted <- df_shapiro |>
-    mutate(
-      across(where(is.numeric), ~ sprintf("%.3f", .))
-    )
-  df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-  colnames(df_formatted) <- c("Time", "Statistic", "P-value", "Normality")
-  df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-  df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-  df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-  write.table(
-    df_aligned,
-    row.names = FALSE,
-    col.names = FALSE,
-    quote = FALSE,
-    sep = "     "
+  df_shapiro_fmt <- df_shapiro |>
+    mutate(across(where(is.numeric), ~ sprintf("%.3f", .)))
+  print_aligned_table(
+    df_shapiro_fmt,
+    headers = c("Time", "Statistic", "P-value", "Normality", "Mean", "Median")
   )
-  cat("\n")
-  if(all(df_shapiro$p > 0.05)) {
-    cat("\\end{verbatim}")
-    cat("\\colorbox{yellow}{\\texttt{Normality RESPECTED --> ANOVA}}")
-    cat("\\begin{verbatim}")
-    
+
+  if (all(df_shapiro$p > 0.05)) {
+    cat("\\colorbox{yellow}{\\texttt{Normality RESPECTED --> ANOVA}}\\newline\\newline\n")
+
     # ANOVA
     # ----------------------------------------------------------------
-    cat("\\end{verbatim}")
-    cat("\\textcolor{red}{\\texttt{· ANOVA ± CORRECTED ANOVA\\newline}}")
-    cat("\\begin{verbatim}")
+    cat("\\textcolor{red}{\\texttt{· ANOVA ± CORRECTED ANOVA\\newline}}\n")
     df_anova <- readRDS(paste0("export/rds/df_anova_", name, ".rds"))
-    sep = c(rep(" ", length(df_anova)))
-    df_formatted <- df_anova |>
-      mutate(
-        across(where(is.numeric), ~ sprintf("%.3f", .))
-      )
-    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-    colnames(df_formatted) <- c("Statistic", "DoF", "P-value", "P-Mauchly", "GG-epsilon")
-    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-    write.table(
-      df_aligned,
-      row.names = FALSE,
-      col.names = FALSE,
-      quote = FALSE,
-      sep = "     "
+    df_anova_fmt <- df_anova |>
+      mutate(across(where(is.numeric), ~ sprintf("%.3f", .)))
+    print_aligned_table(
+      df_anova_fmt,
+      headers = c("Statistic", "DoF", "P-value", "P-Mauchly", "GG-epsilon")
     )
-    cat("\n")
-    if(df_anova$p_mauchly >= 0.05) {
-      cat("\\end{verbatim}")
-      cat(paste0("\\colorbox{yellow}{\\texttt{p-Mauchly >= 0.05 -> No correction needed}}\\newline"))
-      cat("\\begin{verbatim}")
+
+    if (df_anova$p_mauchly >= 0.05) {
+      cat("\\colorbox{yellow}{\\texttt{p-Mauchly >= 0.05 -> No correction needed}}\\newline\\newline\n")
     } else {
-      cat("\\end{verbatim}")
-      cat(paste0("\\colorbox{yellow}{\\texttt{p-Mauchly < 0.05 -> Correction needed}}\\newline\\newline"))
-      if (df_anova$GGe < 0.75) {
-        cat(paste0("\\colorbox{yellow}{\\texttt{GG-epsilon <= 0.75 -> Greenhouse-Geisser correction}}\\newline"))
+      cat("\\colorbox{yellow}{\\texttt{p-Mauchly < 0.05 -> Correction needed}}\\newline\\newline\n")
+      if (df_anova$gge < 0.75) {
+        cat("\\colorbox{yellow}{\\texttt{GG-epsilon < 0.75 -> Greenhouse-Geisser correction}}\\newline\\newline\n")
       } else {
-        cat(paste0("\\colorbox{yellow}{\\texttt{GG-epsilon > 0.75 -> Huynh-Feldt correction}}\\newline"))
+        cat("\\colorbox{yellow}{\\texttt{GG-epsilon >= 0.75 -> Huynh-Feldt correction}}\\newline\\newline\n")
       }
-      cat("\\begin{verbatim}")
     }
-    cat("\n")
-    df_anova_corrected <- readRDS(paste0("export/rds/df_anova_corrected_", name, ".rds"))
-    sep = c(rep(" ", length(df_anova_corrected)))
-    df_formatted <- df_anova_corrected |>
-      mutate(
-        across(where(is.numeric), ~ sprintf("%.3f", .))
-      )
-    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-    colnames(df_formatted) <- c("Statistic", "DoF", "P-value", "Correction")
-    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-    write.table(
-      df_aligned,
-      row.names = FALSE,
-      col.names = FALSE,
-      quote = FALSE,
-      sep = "     "
+
+    df_anova_corrected <- readRDS(paste0("export/rds/df_anova_corrected_", name, ".rds")) |>
+      mutate(across(where(is.numeric), ~ sprintf("%.3f", .)))
+    print_aligned_table(
+      df_anova_corrected,
+      headers = c("Statistic", "DoF", "P-value", "Correction")
     )
-    cat("\n")
-    
-    # HOLM/BONFERRONI PAIRWISE COMPARISON
-    cat("\\end{verbatim}\n")
-    cat("\\textcolor{red}{\\texttt{· HOLM/BONFERRONI PAIRWISE COMPARISON\\newline}}")
-    cat("\\begin{verbatim}\n")
+
+    # HOLM PAIRWISE COMPARISON
+    cat("\\textcolor{red}{\\texttt{· HOLM PAIRWISE COMPARISON\\newline}}\n")
     df_pairwise <- readRDS(paste0("export/rds/df_p_values_", name, ".rds")) |>
-      select(group1, group2, estimate, conf.low, conf.high, statistic, effsize, p.adj)
-    sep = c(rep(" ", length(df_pairwise)))
-    df_formatted <- df_pairwise |>
+      select(group1, group2, estimate, conf.low, conf.high, statistic, effsize, p.adj) |>
       mutate(
         estimate = sprintf("%.2f", estimate),
         conf.low = sprintf("%.2f", conf.low),
@@ -327,83 +260,46 @@ for (name in var_names) {
           TRUE ~ sprintf("%.3f", p.adj)
         )
       )
-    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-    colnames(df_formatted) <- c("Group 1", "Group 2", "Mean Diff", "95% CI Low", "95% CI High", "t", "Cohen's d", "P-value")
-    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-    write.table(
-      df_aligned,
-      row.names = FALSE,
-      col.names = FALSE,
-      quote = FALSE,
+    print_aligned_table(
+      df_pairwise,
+      headers = c("Group 1", "Group 2", "Mean Diff", "95% CI Low", "95% CI High", "t", "Cohen's d", "P-value"),
       sep = "   "
     )
-    cat("\n")
 
   } else {
-    cat("\\end{verbatim}")
-    cat("\\colorbox{yellow}{\\texttt{Normality VIOLATED --> FRIEDMAN'S TEST}}\\newline")
-    cat("\\begin{verbatim}")
-    
+    cat("\\colorbox{yellow}{\\texttt{Normality VIOLATED --> FRIEDMAN'S TEST}}\\newline\\newline\n")
+
     # FRIEDMAN TEST
     # ----------------------------------------------------------------
-    cat("\\end{verbatim}")
-    cat("\\textcolor{red}{\\texttt{· FRIEDMAN'S TEST\\newline}}")
-    cat("\\begin{verbatim}")
-    df_friedman <- readRDS(paste0("export/rds/df_friedman_", name, ".rds"))
-    sep = c(rep(" ", length(df_friedman)))
-    df_formatted <- df_friedman |>
-      mutate(
-        across(where(is.numeric), ~ sprintf("%.3f", .))
-      )
-    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-    colnames(df_formatted) <- c("Chi squared", "DoF", "P-value")
-    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-    write.table(
-      df_aligned,
-      row.names = FALSE,
-      col.names = FALSE,
-      quote = FALSE,
-      sep = "     "
+    cat("\\textcolor{red}{\\texttt{· FRIEDMAN'S TEST\\newline}}\n")
+    df_friedman <- readRDS(paste0("export/rds/df_friedman_", name, ".rds")) |>
+      mutate(across(where(is.numeric), ~ sprintf("%.3f", .)))
+    print_aligned_table(
+      df_friedman,
+      headers = c("Chi squared", "DoF", "P-value")
     )
-    cat("\n")
-    
-    # DURBIN/CONOVER PAIRWISE COMPARISON
-    cat("\\end{verbatim}")
-    cat("\\textcolor{red}{\\texttt{· DURBIN/CONOVER PAIRWISE COMPARISON\\newline}}")
-    cat("\\begin{verbatim}")
+
+    # CONOVER PAIRWISE COMPARISON
+    cat("\\textcolor{red}{\\texttt{· CONOVER PAIRWISE COMPARISON\\newline}}\n")
     df_conover <- readRDS(paste0("export/rds/df_conover_", name, ".rds")) |>
-      select(Group1, Group2, med_diff, ci_lower, ci_upper, Statistic, p_value)
-    sep = c(rep(" ", length(df_conover)))
-    df_formatted <- df_conover |>
+      select(group1, group2, med_diff, ci_lower, ci_upper, statistic, p_value) |>
       mutate(
-        med_diff  = sprintf("%.2f", med_diff),
-        ci_lower  = sprintf("%.2f", ci_lower),
-        ci_upper  = sprintf("%.2f", ci_upper),
-        Statistic = sprintf("%.2f", Statistic),
-        p_value   = case_when(
+        med_diff = sprintf("%.2f", med_diff),
+        ci_lower = sprintf("%.2f", ci_lower),
+        ci_upper = sprintf("%.2f", ci_upper),
+        statistic = sprintf("%.2f", statistic),
+        p_value = case_when(
           p_value < 0.001 ~ "< 0.001",
           TRUE ~ sprintf("%.3f", p_value)
         )
       )
-    df_formatted <- data.frame(lapply(df_formatted, as.character), stringsAsFactors = FALSE)
-    colnames(df_formatted) <- c("Group 1", "Group 2", "Median Diff", "95% CI Low", "95% CI High", "Statistic", "P-value")
-    df_with_header <- rbind(as.list(colnames(df_formatted)), sep, df_formatted)
-    df_char <- as.data.frame(lapply(df_with_header, as.character), stringsAsFactors = FALSE)
-    df_aligned <- as.data.frame(mapply(format, df_char, justify = c(rep("centre", ncol(df_char))), SIMPLIFY = FALSE), stringsAsFactors = FALSE)
-    write.table(
-      df_aligned,
-      row.names = FALSE,
-      col.names = FALSE,
-      quote = FALSE,
+    print_aligned_table(
+      df_conover,
+      headers = c("Group 1", "Group 2", "Median Diff", "95% CI Low", "95% CI High", "Statistic", "P-value"),
       sep = "   "
     )
   }
-  cat("\\end{verbatim}\n")
-  
+
   current_file_path <- file.path("export", "img", paste0("plot_trend_", name, ".pdf"))
   if (file.exists(current_file_path)) {
     cat("\\vspace{7.5mm}")
@@ -413,7 +309,7 @@ for (name in var_names) {
     cat(paste0("\\includegraphics[width=0.75\\textwidth]{{", current_plot, "}}"))
     cat("\\end{center}")
   }
-  
+
   cat("\\end{minipage}\n")
   cat("\\end{adjustwidth}\n")
 }

@@ -1,3 +1,5 @@
+# Estimate required sample size across target effect sizes (Cohen's d) and power levels
+# Uses a two-sided paired t-test as a conservative reference for pairwise timepoint contrasts
 N <- nrow(df_complete)
 alpha <- 0.05
 delta_vals <- c(0.3, 0.4, 0.5)
@@ -15,7 +17,7 @@ sample_size <- sapply(delta_vals, function(d) {
     ceiling(res$n)
   })
 })
-colnames(sample_size) <- paste0("Delta ", delta_vals)
+colnames(sample_size) <- paste0("Delta_", delta_vals)
 df_samples <- as_tibble(data.frame(Power = power_vals, sample_size))
 table_path <- file.path("export/rds/df_samples.rds")
 saveRDS(df_samples, file = table_path)
